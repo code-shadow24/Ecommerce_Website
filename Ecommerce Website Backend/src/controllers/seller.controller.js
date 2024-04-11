@@ -4,14 +4,23 @@ import { Seller } from "../models/seller.model.js";
 import { fileUpload } from "../utils/fileUpload.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 
+const accessAndRefreshTokenGenerator = async(sellerId)=>{
+  try {
+    const seller = await Seller.findById(sellerId);
+    const accessToken = seller.generateAccessToken();
+    const refreshToken = seller.generateRefreshToken();
+    seller.refreshToken = refreshToken;
+    await seller.save({validateBeforeSave: false});
+
+    return{ accessToken, refreshToken }
+
+  } catch (error) {
+    throw new ApiError(500, "Unable to generate access token and refresh token")
+  }
+
+}
+
 const registerSeller = asyncHandler(async (req, res) => {
-  /*
-        Steps to register a new seller
-        - create a seller object and send the entry to the database
-        - check if the seller is registered successfully and remove the password and refresh token field from the response
-        - if the seller is not registered successfully throw an error
-        - if the seller is registered successfully send the response to the frontend
-    */
 
   //Get all the details from the frontend
   const {
@@ -217,4 +226,151 @@ const registerSeller = asyncHandler(async (req, res) => {
 
 });
 
-export { registerSeller };
+const loginSeller = asyncHandler(async(req, res) => {
+  
+  //Get info from frontend
+  const {email, password} = req.body;
+
+  //Validate
+  //check if email field is entered by the seller or not
+  if(email?.trim()==""){
+    throw new ApiError(400, "Email address is required")
+  }
+
+  //If the seller is using email address to login check if the format of the email entered by the seller is correct or not
+  if (email) {
+    //Predefined email address format
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+
+    //Check if the email entered by the user matches the format or not
+    if (!emailRegex.test(email)) {
+      throw new ApiError(401, "Invalid email address");
+    }
+  }
+
+  //Check if the email entered by the user matches the email in database
+  const existingSeller = await Seller.findOne({email})
+
+  //if the seller does not exist
+  if(!existingSeller){
+    throw new ApiError(402, "Seller is not registered");
+  }
+
+  //Check if the password entered by the seller matches the password in database
+  const checkPass = await existingSeller.passwordChecker(password);
+
+  //if password is incorrect
+  if(!checkPass){
+    throw new ApiError(403, "Password is incorrect");
+  }
+
+  //Generate access token and refresh token
+  const { accessToken, refreshToken } = await accessAndRefreshTokenGenerator(existingSeller._id);
+
+  //Make a database call to get the refresh token with the seller detail
+  const loggedInSeller = await Seller.findById(existingSeller._id).select("-password, -refreshToken")
+
+  //add options to restrict any changes in cookies from frontend, it can be changed only from server
+  const options = {
+    httpOnly: true,
+    secure: true
+  }
+
+  //send the response to the seller along with the cookies
+  return res
+  .status(200)
+  .cookie("accessToken", accessToken, options)
+  .cookie("refreshToken", refreshToken, options)
+  .json(
+    new ApiResponse(200, "Seller logged in successfully", loggedInSeller)
+  )
+
+})
+
+const updateAddress = asyncHandler( async (req, res) => {
+  //Get the address from the frontend
+  const {shopAddress} = req.body;
+
+  //Check if the address field is filled or not
+  if(shopAddress?.trim() == '') {
+    throw new ApiError(400, "Shop Address is required")
+  }
+
+  //address regex
+  const addressRegex = /^[a-zA-Z0-9 !@#$%^&*()\-_=+[{\]}\\|;:'",<.>/?]*$/
+
+  //Check if the address entered by the seller matches the address regex
+  if(!addressRegex.test(shopAddress)){
+    throw new ApiError(400, "Shop Address should be entered in English langaue only and can contain number from 0-9 and '-' and '/' symbol" )
+  }
+
+  //Find the seller and update the address
+  const seller = await Seller.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        shopAddress
+      }
+    },
+    {new: true}
+  ).select("-password -refreshToken")
+
+  //If the seller is not found
+  if(!seller){
+    throw new ApiError(404, "Seller not found")
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "Address updated successfully", seller)
+  )
+
+})
+
+const logOut = asyncHandler( async (req, res) => {
+  //Get seller's mongo Id
+  const sellerId = req.user?._id;
+
+  await Seller.findByIdAndUpdate(
+    sellerId,
+    {
+      $unset : {
+        refreshToken: 1
+      }
+    },
+    {new: true}
+  )
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  }
+
+  return res
+  .status(200)
+  .cookie("accessToken", options)
+  .cookie("refreshToken", options)
+  .json(
+    new ApiResponse(200, "Seller logged out successfully", null)
+  )
+
+})
+
+const getCurrentSeller = asyncHandler( async (req, res) => {
+  const seller = req.user
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "Seller fetched successfully", seller)
+  )
+})
+
+export {
+   registerSeller, 
+   loginSeller, 
+    updateAddress, 
+    logOut, 
+    getCurrentSeller 
+};
