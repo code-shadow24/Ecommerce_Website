@@ -1,5 +1,6 @@
 import {v2 as cloudinary} from "cloudinary";
 import fs from "fs";
+import { ApiError } from "./apiError";
 
           
 cloudinary.config({ 
@@ -22,11 +23,30 @@ const fileUpload = async (localStoragePath)=>{
     return null;
 
   }
+}
 
+const fileDelete = async (URL, isVideo)=>{
+  try{
+    if(!URL){
+      return;
+    }
 
+    const fileName = URL.split('/').pop().split('.')[0];
+
+    const fileType = isVideo ? 'video' : 'image';
+
+    await cloudinary.uploader.destroy(fileName, {resource_type: fileType})
+  }
+  catch(error){
+    throw new ApiError(500, "Error deleting file: " + error.message)
+  }
 
 }
 
 
 
-export {fileUpload}
+export 
+{
+  fileUpload,
+  fileDelete
+}

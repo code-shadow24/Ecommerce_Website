@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandle.js";
 import { ApiError } from "../utils/apiError.js";
 import { Seller } from "../models/seller.model.js";
-import { fileUpload } from "../utils/fileUpload.js";
+import { fileDelete, fileUpload } from "../utils/fileUpload.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 
 const accessAndRefreshTokenGenerator = async(sellerId)=>{
@@ -367,10 +367,217 @@ const getCurrentSeller = asyncHandler( async (req, res) => {
   )
 })
 
+const updateDetails = asyncHandler( async (req, res)=>{
+  //Get all the details from the frontend
+  const {
+    firstName,
+    lastName,
+    email,
+    brandName,
+    productCategories,
+    phoneNumber,
+    accounttype,
+    accountNumber,
+    bankName,
+    IFSCCode,
+    accountName,
+    accountURL} = req.body
+
+    //Check if all the required fields are present
+    //check if first name is present
+  if (firstName?.trim() == "") {
+    throw new ApiError(400, "First Name is required");
+  }
+
+  //check if last name is present
+  if (lastName?.trim() == "") {
+    throw new ApiError(400, "Last Name is required");
+  }
+
+  //check if email is present
+  if (email?.trim() == "") {
+    throw new ApiError(400, "Email is required");
+  }
+
+  //check if brand name is present
+  if (brandName?.trim() == "") {
+    throw new ApiError(400, "Brand Name is required");
+  }
+
+  //check if phoneNumber is present
+  if (phoneNumber?.trim() == "") {
+    throw new ApiError(400, "PhoneNumber is required");
+  }
+
+  //check if accountType is present
+  if (accounttype?.trim() == "") {
+    throw new ApiError(400, "AccountType is required");
+  }
+
+  //check if accountNumber is present
+  if (accountNumber?.trim() == "") {
+    throw new ApiError(400, "AccountNumber is required");
+  }
+
+  //check if bankNumber is present
+  if (bankName?.trim() == "") {
+    throw new ApiError(400, "BankName is required");
+  }
+
+  //check if IFSC Code is present
+  if (IFSCCode?.trim() == "") {
+    throw new ApiError(400, "IFSCCode is required");
+  }
+
+  //check if accountURL is given is accountName is provided
+  if (accountName?.trim() != "") {
+    if (accountURL?.trim() == "") {
+      throw new ApiError(400, "AccountURL is required");
+    }
+  }
+  
+  const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+
+  //Check if the email entered by the seller matches the format or not
+  if (!emailRegex.test(email)) {
+    throw new ApiError(401, "Invalid email address");
+  }
+
+  //Check if the accounttype entered by the seller is from the provided option or not ("current" or "savings")
+  if (accounttype != "Current" && accounttype != "Savings") {
+    throw new ApiError(408, "Account type can either be current or savings");
+  }
+
+  //Check if any of the unique details entered by the seller already exists in the database
+
+  //email address
+  //check if the email address entered by the seller already exists in the database
+  const existingEmail = await Seller.findOne({ email });
+
+  //if the email address entered by the seller already exists in the database
+  if (existingEmail) {
+    throw new ApiError(409, "Email address already exists");
+  }
+
+  //phone number
+  //check if the phone number entered by the seller already exists in the database
+  const existingPhoneNumber = await Seller.findOne({ phoneNumber });
+
+  //if the phone number entered by the seller already exists in the database
+  if (existingPhoneNumber) {
+    throw new ApiError(409, "Phone number already exists");
+  }
+
+  //bank account number
+  //check if the bank account number entered by the seller already exists in the database
+  const existingBankAccountNumber = await Seller.findOne({ accountNumber });
+
+  //if the bank account number entered by the seller already exists in the database
+  if(existingBankAccountNumber){
+    throw new ApiError(409, "Bank account number already exists");
+  }
+
+  //brandName
+  //check if brand name entered by the seller already exists in the database
+  const existingBrandName = await Seller.findOne({ brandName });
+
+  //if the brand name entered by the seller already exists in the database
+  if(existingBrandName){
+    throw new ApiError(409, "Brand name already exists");
+  }
+
+  //accountURL
+  //check if the account URL entered by the seller already exists in the database
+  if(accountURL?.trim() != ""){
+    const existingAccountURL = await Seller.findOne({ accountURL });
+    if(existingAccountURL){
+        throw new ApiError(409, "Social Media Account URL already exists");
+    }
+  }
+
+  const seller = await Seller.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set:{
+        fullName : {
+          firstName,
+          lastName
+      },
+      email,
+      brandName,
+      productCategories,
+      phoneNumber,
+      bankDetails: {
+          accounttype: "Current" || "Savings",
+          accountNumber,
+          bankName,
+          IFSCCode
+      },
+      socialMedia: [
+          {
+              accountName,
+              accountURL
+          }
+      ]
+      }
+    },
+    {new: true}
+  ).select("-password -refreshToken")
+
+  if(!seller){
+    throw new ApiError(500, "Error while updating the seller details")
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "Seller Details updated successfully", seller)
+  )
+  
+})
+
+const updateAvatar = asyncHandler( async (req, res) => {
+  const sellerId = req.user?._id
+  const avatarLocalPath = req.file?.path;
+
+  if(!avatarLocalPath){
+    throw new ApiError(404, "Avatar local path not found")
+  }
+
+  const existingSeller = await Seller.findById(sellerId)
+
+  await fileDelete(existingSeller.avatar, false)
+
+  const newAvatar = await fileUpload(avatarLocalPath)
+
+  if(!newAvatar.url){
+    throw new ApiError(500, "Avatar upload failed")
+  }
+
+  const seller = await Seller.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        avatar: newAvatar.secure_url
+      }
+    },
+    {new: true}
+  ).select("-password -refreshToken")
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "Avatar updated successfully"), seller
+  )
+
+})
+
 export {
    registerSeller, 
    loginSeller, 
-    updateAddress, 
-    logOut, 
-    getCurrentSeller 
+   updateAddress, 
+   logOut, 
+   getCurrentSeller,
+   updateDetails,
+   updateAvatar
 };

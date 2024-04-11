@@ -1,9 +1,10 @@
 import { asyncHandler } from "../utils/asyncHandle.js";
 import { ApiError } from "../utils/apiError.js";
 import { User } from "../models/user.model.js";
-import { fileUpload } from "../utils/fileUpload.js";
+import { fileDelete, fileUpload } from "../utils/fileUpload.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { Address } from "../models/address.model.js";
+import { PaymentDetail } from "../models/paymentDetail.model.js";
 
 //Generates access token and refresh token
 const generateAccessandRefreshToken = async (userId) => {
@@ -240,7 +241,7 @@ const changeAddress = asyncHandler( async (req, res) => {
       throw new ApiError(400, "Pincode entered must contain only numeric values")
     }
 
-    const user = await User.findByIdAndUpdate(
+    const user = await Address.findByIdAndUpdate(
       req.user?._id,
       {
         $set : {
@@ -304,11 +305,171 @@ const getCurrentUser = asyncHandler( async (req, res) => {
   )
 })
 
+const updateDetails = asyncHandler( async(req, res) => {
+  //Get user details from the frontend
+  const { firstName, lastName, emailAddress, mobileNumber } = req.body;
+
+  //Check if all the required fields are present
+  if(firstName?.trim()==""){
+    throw new ApiError(400, "FirstName is required");
+  }
+
+  if(lastName?.trim()==""){
+    throw new ApiError(400, "LastName is required");
+  }
+
+  if(emailAddress?.trim()==""){
+    throw new ApiError(400, "EmailAddress is required");
+  }
+
+  if(mobileNumber?.trim()==""){
+    throw new ApiError(400, "MobileNumber is required");
+  }
+
+  //Check if every detail is in required format or not
+  const nameRegex1 = /^[a-zA-Z]*$/
+  if(!nameRegex1.test(firstName)){
+    throw new ApiError(400, "FirstName should be in English Langauge")
+  }
+
+  if(!nameRegex1.test(lastName)){
+    throw new ApiError(400, "LastName should be in English Language")
+  }
+
+  const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+
+  if (!emailRegex.test(emailAddress)) {
+    throw new ApiError(401, "Invalid email address");
+  }
+
+  const phoneRegex = /^[0-9]*$/
+  if(!phoneRegex.test(mobileNumber)) {
+    throw new ApiError(401, "Invalid mobile number");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set:{
+        fullname: {
+          firstName,
+          lastName
+        },
+        emailAddress,
+        mobileNumber
+      }
+    },
+    {new: true}
+  ).select("-password -refreshToken");
+
+  if(!user){
+    throw new ApiError(500, "Unable to update the profile details")
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "Profile updated successfully", user)
+  )
+})
+
+const changeAvatar = asyncHandler( async (req, res) => {
+  const userId = req.user?._id;
+  const avatarPath = req.file?.path;
+
+  if(!avatarPath){
+    throw new ApiError(404, "Avatar local path not found")
+  }
+
+  const user = await User.findById(userId)
+
+  if(!user){
+    throw new ApiError(404, "User not found")
+  }
+
+  await fileDelete(user.avatar, false)
+
+  const newAvatar = await fileUpload(avatarPath);
+
+  if(!newAvatar.url){
+    throw new ApiError(404, "Avatar not uploaded successfully") 
+  }
+
+  const existingUser = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        avatar: newAvatar.secure_url
+      }
+    },
+    {new: true}
+  ).select("-password")
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "Avatar updated successfully", existingUser)
+  )
+
+})
+
+const updatePaymentDetails = asyncHandler( async (req, res) => {
+  const userId = req.user?._id
+
+  const {cardNumber, expiryDate, bankName} = req.body
+
+  if(cardNumber?.trim()==""){
+    throw new ApiError(403, "Card Number is required")
+  }
+
+  if(expiryDate?.trim()==""){
+    throw new ApiError(403, "Expiry Date is required")
+  }
+
+  if(bankName?.trim()==""){
+    throw new ApiError(403, "Bank Name is required")
+  }
+
+  const user = await User.findById(userId)
+
+  if(!user){
+    throw new ApiError(404, "User not found")
+  }
+
+  const paymentDetails = await PaymentDetail.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set:{
+        cardNumber,
+        expiryDate,
+        name: user.fullname,
+        mobileNumber: user.mobileNumber,
+        bankName
+      }
+    },
+    {new: true}
+  )
+
+  if(!paymentDetails){
+    throw new ApiError(500, "Error while updating payment details")
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "Payment details updated successfully", paymentDetails)
+  )
+
+})
+
 export 
 { 
   registerUser, 
   loginUser, 
   changeAddress, 
   logOut, 
-  getCurrentUser 
+  getCurrentUser,
+  updateDetails,
+  changeAvatar,
+  updatePaymentDetails
 };
