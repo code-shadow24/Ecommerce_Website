@@ -1,34 +1,44 @@
 import mongoose from "mongoose"
 
 const ratingSchema = new mongoose.Schema({
-    customerName: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true
-    },
-    avatar: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-    },
-    productId : {
+    product: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Product",
         required: true
     },
-    starRating: {
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
+    ratingNumber: {
         type: Number,
         required: true
     },
-    headline: {
+    reviewTitle: {
         type: String,
+    },
+    reviewText: {
+        type: String,
+    },
+    reviewDate:{
+        type: Date,
         required: true
     },
-    longDescription: {
+    helpVotes: {
+        type: Number
+    },
+    unhelpfulVotes: {
+        type: Number
+    },
+    sellerResponse: {
         type: String
     },
-    email: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
+    reviewImages: {
+        type: String
+    },
+    reviewVideos: {
+        type: String
     }
 }, {timestamps: true})
 

@@ -12,6 +12,11 @@ const quantitySchema = new mongoose.Schema({
 })
 
 const cartSchema = new mongoose.Schema({
+    productId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+        required: true
+    },
     productName: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Product",
@@ -31,7 +36,7 @@ const cartSchema = new mongoose.Schema({
         ref: "Product"
     },
     addedQuantity: [quantitySchema],
-    Price: {
+    price: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Product",
         required: true
@@ -44,16 +49,46 @@ const cartSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    coupon: {
-        type: String,
-    },
+    coupon: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Coupon"
+        }
+    ],
     grandTotal: {
         type: Number,
         required: true
     },
-    user: {
+    name: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
+        ref: "User",
+        required: true
+    },
+    productUrl: {
+        type: String,
+        required: true
+    },
+    productAvailability: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Inventory",
+        required: true
+    },
+    totalQuantity: {
+        type: Number,
+        required: true
+    },
+    totalPrice: {
+        type: Number,
+        required: true
+    },
+    discountAmount: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Coupon"
+    },
+    tax: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Tax",
+        required: true
     }
 });
 

@@ -5,22 +5,25 @@ import { fileDelete, fileUpload } from "../utils/fileUpload.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { Address } from "../models/address.model.js";
 import { PaymentDetail } from "../models/paymentDetail.model.js";
+import { Order } from "../models/order.model.js";
+import { Rating } from "../models/ratings.model.js";
+import { Wishlist } from "../models/wishlist.model.js";
+import { Cart } from "../models/cart.model.js";
 
 //Generates access token and refresh token
 const generateAccessandRefreshToken = async (userId) => {
   try {
     const user = await User.findById(userId);
-    const accessToken= user.accessTokenGenerator()
+    const accessToken = user.accessTokenGenerator();
     const refreshToken = user.refreshTokenGenerator();
     user.refreshToken = refreshToken;
-    await user.save({validateBeforeSave: false});
+    await user.save({ validateBeforeSave: false });
 
-    return { accessToken, refreshToken }
-
+    return { accessToken, refreshToken };
   } catch (error) {
-    throw new ApiError(500, "Error generating access and refresh token")
+    throw new ApiError(500, "Error generating access and refresh token");
   }
-}
+};
 
 const registerUser = asyncHandler(async (req, res) => {
   //Accept data from the frontend
@@ -123,13 +126,12 @@ const registerUser = asyncHandler(async (req, res) => {
 });
 
 const loginUser = asyncHandler(async (req, res) => {
-
   //Get details from the frontend
   const { emailAddress, password } = req.body;
 
   //Validate
   //check if the email address /phone number is entered by the user or not
-  if (emailAddress?.trim()==""){
+  if (emailAddress?.trim() == "") {
     throw new ApiError(409, "Email address or mobile number is required");
   }
 
@@ -145,195 +147,113 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 
   //Check if the email entered by the user is present in the database or not
-  const existingUser = await User.findOne({emailAddress});
+  const existingUser = await User.findOne({ emailAddress });
 
   //if the user is not registered
-  if (!existingUser){
-    throw new ApiError(410, "User is not registered")
+  if (!existingUser) {
+    throw new ApiError(410, "User is not registered");
   }
 
   //check if the user has entered the correct password or not
-  const passCheck = await existingUser.passwordCheck(password)
+  const passCheck = await existingUser.passwordCheck(password);
 
   //if the user has entered the wrong password throw an error
-  if(!passCheck){
-    throw new ApiError(410, "Password is incorrect")
+  if (!passCheck) {
+    throw new ApiError(410, "Password is incorrect");
   }
 
   //generate the access token or refresh token
-  const {accessToken, refreshToken} = await generateAccessandRefreshToken(existingUser._id);
+  const { accessToken, refreshToken } = await generateAccessandRefreshToken(
+    existingUser._id
+  );
 
   //Send a database call to get the refresh token in user object and remove password and refreshToken
-  const loggedInUser = await User.findById(existingUser._id).select("-password, -refreshToken")
+  const loggedInUser = await User.findById(existingUser._id).select(
+    "-password, -refreshToken"
+  );
 
   //add options to restrict any changes in cookies from frontend, it can be changed only from server
   const options = {
     httpOnly: true,
-    secure: true
-  }
-
+    secure: true,
+  };
 
   //send the response and the cookies to the user
   return res
-  .status(200)
-  .cookie("accessToken", accessToken, options)
-  .cookie("refreshToken", refreshToken, options)
-  .json(
-    new ApiResponse(200, "User successfully logged in", {loggedInUser, accessToken, refreshToken})
-  )
-
-});
-
-const changeAddress = asyncHandler( async (req, res) => {
-
-    //Get the address from the frontend
-    const {AddressLine1, AddressLine2, City, State, Country, Pincode} = req.body;
-
-    if(AddressLine1?.trim() == "") {
-      throw new ApiError(400, "Address line 1 is required")
-    }
-
-    if(City?.trim() == "") {
-      throw new ApiError(400, "City is required")
-    }
-
-    if(State?.trim() == "") {
-      throw new ApiError(400, "State is required");
-    }
-
-    if(Country?.trim() == "") {
-      throw new ApiError(400, "Country is required");
-    }
-
-    if(Pincode?.trim() == "") {
-      throw new ApiError(400, "Pincode is required");
-    }
-
-    const addressRegex = /^[a-zA-Z0-9 !@#$%^&*()\-_=+[{\]}\\|;:'",<.>/?]*$/
-
-    if(!addressRegex.test(AddressLine1)){
-      throw new ApiError(400, "Address line 1 should be entered in English langaue only and can contain number from 0-9 and '-' and '/' symbol" )
-    }
-
-    if(AddressLine2?.trim()!=""){
-      if(!addressRegex.test(AddressLine2)){
-        throw new ApiError(400, "Address line 2 should be entered in English langaue only and can contain number from 0-9 and '-' and '/' symbol")
-      }
-    }
-
-    const addressRegex1 = /^[a-zA-Z]*$/
-
-    if(!addressRegex1.test(City)){
-      throw new ApiError(400, "City must be entered in English langaue only")
-    }
-
-    if(!addressRegex1.test(State)){
-      throw new ApiError(400, "State must be entered in English langaue only")
-    }
-
-    if(!addressRegex1.test(Country)){
-      throw new ApiError(400, "Country must be entered in English langaue only")
-    }
-
-    const pincodeRegex = /^[0-9]*$/
-
-    if(!pincodeRegex.test(Pincode)){
-      throw new ApiError(400, "Pincode entered must contain only numeric values")
-    }
-
-    const user = await Address.findByIdAndUpdate(
-      req.user?._id,
-      {
-        $set : {
-          AddressLine1,
-          AddressLine2,
-          City,
-          State,
-          Country,
-          Pincode
-        },
-      },
-      {new: true}
-    ).select("-password -refreshToken")
-
-    if(!user){
-      throw new ApiError(500, "Unable to update the address")
-    }
-
-    return res
     .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
     .json(
-      new ApiResponse(200, "Address updated successfully", user)
-    )
+      new ApiResponse(200, "User successfully logged in", {
+        loggedInUser,
+        accessToken,
+        refreshToken,
+      })
+    );
 });
 
-const logOut = asyncHandler( async (req, res) => {
+const logOut = asyncHandler(async (req, res) => {
   const userId = req.user?._id;
 
   await User.findByIdAndUpdate(
     userId,
     {
       $unset: {
-        refreshToken: 1
-      }
+        refreshToken: 1,
+      },
     },
-    {new: true}
-  )
+    { new: true }
+  );
 
-  const options ={
+  const options = {
     httpOnly: true,
-    secure: true
-  }
+    secure: true,
+  };
 
   return res
-  .status(200)
-  .cookie("accessToken", options)
-  .cookie("refreshToken", options)
-  .json(
-    new ApiResponse(200, "User logged out successfully", null)
-  )
+    .status(200)
+    .cookie("accessToken", options)
+    .cookie("refreshToken", options)
+    .json(new ApiResponse(200, "User logged out successfully", null));
+});
 
-})
-
-const getCurrentUser = asyncHandler( async (req, res) => {
+const getCurrentUser = asyncHandler(async (req, res) => {
   const user = req.user;
-  
-  return res
-  .status(200)
-  .json(
-    new ApiResponse(200, "User details fetched successfully", user)
-  )
-})
 
-const updateDetails = asyncHandler( async(req, res) => {
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "User details fetched successfully", user));
+});
+
+const updateDetails = asyncHandler(async (req, res) => {
   //Get user details from the frontend
   const { firstName, lastName, emailAddress, mobileNumber } = req.body;
 
   //Check if all the required fields are present
-  if(firstName?.trim()==""){
+  if (firstName?.trim() == "") {
     throw new ApiError(400, "FirstName is required");
   }
 
-  if(lastName?.trim()==""){
+  if (lastName?.trim() == "") {
     throw new ApiError(400, "LastName is required");
   }
 
-  if(emailAddress?.trim()==""){
+  if (emailAddress?.trim() == "") {
     throw new ApiError(400, "EmailAddress is required");
   }
 
-  if(mobileNumber?.trim()==""){
+  if (mobileNumber?.trim() == "") {
     throw new ApiError(400, "MobileNumber is required");
   }
 
   //Check if every detail is in required format or not
-  const nameRegex1 = /^[a-zA-Z]*$/
-  if(!nameRegex1.test(firstName)){
-    throw new ApiError(400, "FirstName should be in English Langauge")
+  const nameRegex1 = /^[a-zA-Z]*$/;
+  if (!nameRegex1.test(firstName)) {
+    throw new ApiError(400, "FirstName should be in English Langauge");
   }
 
-  if(!nameRegex1.test(lastName)){
-    throw new ApiError(400, "LastName should be in English Language")
+  if (!nameRegex1.test(lastName)) {
+    throw new ApiError(400, "LastName should be in English Language");
   }
 
   const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
@@ -342,134 +262,297 @@ const updateDetails = asyncHandler( async(req, res) => {
     throw new ApiError(401, "Invalid email address");
   }
 
-  const phoneRegex = /^[0-9]*$/
-  if(!phoneRegex.test(mobileNumber)) {
+  const phoneRegex = /^[0-9]*$/;
+  if (!phoneRegex.test(mobileNumber)) {
     throw new ApiError(401, "Invalid mobile number");
   }
 
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
-      $set:{
+      $set: {
         fullname: {
           firstName,
-          lastName
+          lastName,
         },
         emailAddress,
-        mobileNumber
-      }
+        mobileNumber,
+      },
     },
-    {new: true}
+    { new: true }
   ).select("-password -refreshToken");
 
-  if(!user){
-    throw new ApiError(500, "Unable to update the profile details")
+  if (!user) {
+    throw new ApiError(500, "Unable to update the profile details");
   }
 
   return res
-  .status(200)
-  .json(
-    new ApiResponse(200, "Profile updated successfully", user)
-  )
-})
+    .status(200)
+    .json(new ApiResponse(200, "Profile updated successfully", user));
+});
 
-const changeAvatar = asyncHandler( async (req, res) => {
+const changeAvatar = asyncHandler(async (req, res) => {
   const userId = req.user?._id;
   const avatarPath = req.file?.path;
 
-  if(!avatarPath){
-    throw new ApiError(404, "Avatar local path not found")
+  if (!avatarPath) {
+    throw new ApiError(404, "Avatar local path not found");
   }
 
-  const user = await User.findById(userId)
+  const user = await User.findById(userId);
 
-  if(!user){
-    throw new ApiError(404, "User not found")
+  if (!user) {
+    throw new ApiError(404, "User not found");
   }
 
-  await fileDelete(user.avatar, false)
+  await fileDelete(user.avatar, false);
 
   const newAvatar = await fileUpload(avatarPath);
 
-  if(!newAvatar.url){
-    throw new ApiError(404, "Avatar not uploaded successfully") 
+  if (!newAvatar.url) {
+    throw new ApiError(404, "Avatar not uploaded successfully");
   }
 
   const existingUser = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
-        avatar: newAvatar.secure_url
-      }
+        avatar: newAvatar.secure_url,
+      },
     },
-    {new: true}
-  ).select("-password")
+    { new: true }
+  ).select("-password");
 
   return res
-  .status(200)
-  .json(
-    new ApiResponse(200, "Avatar updated successfully", existingUser)
-  )
+    .status(200)
+    .json(new ApiResponse(200, "Avatar updated successfully", existingUser));
+});
 
-})
+const getUserDetails = asyncHandler(async (req, res) => {
+  const userId = req.user?._id;
 
-const updatePaymentDetails = asyncHandler( async (req, res) => {
-  const userId = req.user?._id
+  //Get user detail from the database
+  const user = await User.findById(userId).select("-password -refreshToken");
 
-  const {cardNumber, expiryDate, bankName} = req.body
-
-  if(cardNumber?.trim()==""){
-    throw new ApiError(403, "Card Number is required")
+  //Check if user is present in the database
+  if (!user) {
+    throw new ApiError(404, "User not found");
   }
 
-  if(expiryDate?.trim()==""){
-    throw new ApiError(403, "Expiry Date is required")
-  }
+  //Fetch user's address count and address
+  const addressCount = await Address.countDocuments({ name: userId });
+  const address = await Address.find({ name: userId });
 
-  if(bankName?.trim()==""){
-    throw new ApiError(403, "Bank Name is required")
-  }
+  //Fetch user's Payment details
+  const paymentDetailsCount = await PaymentDetail.countDocuments({
+    name: userId,
+  });
+  const paymentDetailsData = await PaymentDetail.find({ name: userId });
 
-  const user = await User.findById(userId)
+  //Fetch user's Order details
+  const orderCount = await Order.countDocuments({ name: userId });
+  const orderDetails = await Order.find({ name: userId });
 
-  if(!user){
-    throw new ApiError(404, "User not found")
-  }
+  //Fetch user's product rating information
+  const ratingCount = await Rating.countDocuments({ name: userId });
+  const ratingDetais = await Rating.find({ name: userId });
 
-  const paymentDetails = await PaymentDetail.findByIdAndUpdate(
-    req.user?._id,
-    {
-      $set:{
-        cardNumber,
-        expiryDate,
-        name: user.fullname,
-        mobileNumber: user.mobileNumber,
-        bankName
-      }
+  //Fetch user's wishlist information
+  const wishlistCount = await Wishlist.countDocuments({ name: userId });
+  const wishlistDetails = await Wishlist.find({ name: userId });
+
+  //Fetch user's Cart information
+  const cartItemsCount = await Cart.countDocuments({ name: userId });
+  const cartItemsDetails = await Cart.find({ name: userId });
+
+  const userDetails = {
+    user: user,
+    address: {
+      count: addressCount,
+      data: address,
     },
-    {new: true}
-  )
-
-  if(!paymentDetails){
-    throw new ApiError(500, "Error while updating payment details")
-  }
+    paymentDetails: {
+      count: paymentDetailsCount,
+      data: paymentDetailsData,
+    },
+    order: {
+      count: orderCount,
+      data: orderDetails,
+    },
+    rating: {
+      count: ratingCount,
+      data: ratingDetais,
+    },
+    wishlist: {
+      count: wishlistCount,
+      data: wishlistDetails,
+    },
+    cart: {
+      count: cartItemsCount,
+      data: cartItemsDetails,
+    },
+  };
 
   return res
-  .status(200)
-  .json(
-    new ApiResponse(200, "Payment details updated successfully", paymentDetails)
-  )
+    .status(200)
+    .json(
+      new ApiResponse(200, "User details fetched successfully", userDetails)
+    );
+});
 
-})
+const deleteUser = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user?._id;
 
-export 
-{ 
-  registerUser, 
-  loginUser, 
-  changeAddress, 
-  logOut, 
+    const existingUser = await User.findById(userId);
+
+    if (!existingUser) {
+      return res.status(404).json(new ApiResponse(404, "User not found", null));
+    }
+
+    //Delete the user avatar from the cloudinary server
+    try {
+      await fileDelete(existingUser.avatar, false);
+    } catch (error) {
+      throw new ApiError(500, "Error deleting the user avatar", error);
+    }
+
+    //Delete the user address from the database
+    try {
+      const addresses = await Address.find({ name: userId });
+
+      await Address.deleteMany({ name: userId });
+    } catch (error) {
+      throw new ApiError(500, "Error deleting the user address", error);
+    }
+
+    //Delete the user paymentDetails from the database
+    try {
+      const paymentdetails = await PaymentDetail.find({ name: userId });
+
+      await PaymentDetail.deleteMany({ name: userId });
+    } catch (error) {
+      throw new ApiError(500, "Error deleting the user paymentDetails", error);
+    }
+
+    //Delete the user wishlist from the database
+    try {
+      const wishlist = await Wishlist.find({ name: userId });
+
+      await Wishlist.deleteMany({ name: userId });
+    } catch (error) {
+      throw new ApiError(500, "Error deleting wishlist", error);
+    }
+
+    //Delete the user's ratings from the database
+    try {
+      const ratings = await Rating.find({ name: userId });
+
+      await Rating.deleteMany({ name: userId });
+    } catch (error) {
+      throw new ApiError(500, "Error deleting the user's ratings", error);
+    }
+
+    //Delete the user's order details from the database
+    try {
+      const orders = await Order.find({ name: userId });
+
+      await Order.deleteMany({ name: userId });
+    } catch (error) {
+      throw new ApiError(500, "Error deleting the user's order details", error);
+    }
+
+    //Delete the user's cart details
+    try {
+      const cart = await Cart.find({ name: userId });
+
+      await Cart.deleteMany({ name: userId });
+    } catch (error) {
+      throw new ApiError(500, "Error deleting the user's cart details", error);
+    }
+
+    //Delete the user id
+    try {
+      await User.findByIdAndDelete(userId);
+    } catch (error) {
+      return res
+        .status(500)
+        .json(new ApiResponse(500, "Error deleting user document", error));
+    }
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, "Successfully deleted User Id", null));
+  } catch (error) {
+    return res
+      .status(500)
+      .json(new ApiResponse(500, "Error deleting user Id", error));
+  }
+});
+
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const providedRefreshToken =
+    req.cookies?.refreshToken || req.body.refreshToken;
+
+  if (!providedRefreshToken) {
+    throw new ApiError(404, "No refresh token provided");
+  }
+
+  try {
+    const verifiedToken = jwt.verify(
+      providedRefreshToken,
+      process.env.REFRESH_SECRET_TOKEN_KEY
+    );
+
+    const user = await User.findById(verifiedToken._id);
+
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    if (providedRefreshToken !== user?.refreshToken) {
+      throw new ApiError(
+        403,
+        "Refresh token does not match provided refresh token"
+      );
+    }
+
+    const { accessToken, refreshToken } = await generateAccessandRefreshToken(
+      user._id
+    );
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken)
+      .cookie("refreshToken", refreshToken)
+      .json(
+        new ApiResponse(200, "Access Token refreshed successfully", {
+          accessToken,
+          refreshToken,
+        })
+      );
+  } catch (error) {
+    throw new ApiError(
+      401,
+      "Failed to refresh access token. Invalid refresh token",
+      error
+    );
+  }
+});
+
+export {
+  registerUser,
+  loginUser,
+  logOut,
   getCurrentUser,
   updateDetails,
   changeAvatar,
-  updatePaymentDetails
+  getUserDetails,
+  refreshAccessToken,
+  deleteUser
 };

@@ -29,22 +29,6 @@ const userSchema = new mongoose.Schema({
     refreshToken: {
         type: String,
     },
-    wishlist: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Wishlist"
-    },
-    address:{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Address"
-    },
-    paymentDetail: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "PaymentDetail"
-    },
-    orderDetails: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Order"
-    },
     mobileNumber: {
         type: Number
     }

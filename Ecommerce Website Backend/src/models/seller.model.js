@@ -21,9 +21,12 @@ const sellerSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    productCategories: {
-      type: Array,
-    },
+    productCategories: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Category"
+      }
+    ],
     password: {
       type: String,
       required: true,
@@ -71,6 +74,10 @@ const sellerSchema = new mongoose.Schema(
         },
       },
     ],
+    status: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Verification"
+    }
   },
   { timestamps: true }
 );

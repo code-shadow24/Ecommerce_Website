@@ -12,14 +12,22 @@ const quantitySchema = new mongoose.Schema({
 })
 
 const orderSchema = new mongoose.Schema({
+    orderId: {
+        type: String,
+        required: true
+    },
     orderPrice: {
         type: Number,
         required: true,
     },
-    customer: {
+    name: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true
+    },
+    productTitle: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product"
     },
     address: {
         type: mongoose.Schema.Types.ObjectId,
@@ -35,6 +43,14 @@ const orderSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Product"
     },
+    category: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product"
+    },
+    productPrice: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product"
+    },
     productImage: {
         type: [
             {
@@ -42,6 +58,18 @@ const orderSchema = new mongoose.Schema({
                 ref: "Product"
             }
         ] 
+    },
+    discount: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Coupon"
+    },
+    tax: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Tax"
+    },
+    seller: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Seller"
     },
     status: {
         type: String,

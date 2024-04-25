@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema({
-    brandName: {
+    seller: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Seller",
         required: true
@@ -11,8 +11,9 @@ const productSchema = new mongoose.Schema({
         required: true
     },
     quantity: {
-        type : Number,
-        default : 0
+        type : mongoose.Schema.Type.ObjectId,
+        ref: "Inventory",
+        required: true
     },
     sizes: {
         type: [{
@@ -46,7 +47,43 @@ const productSchema = new mongoose.Schema({
     }],
     description: {
         type: String
-    }
-})
+    },
+    stockKeepingUnit: {
+        type: String,
+        required : true
+    },
+    barcode: {
+        type: String,
+        required: true
+    },
+    weight: {
+        type: Number
+    },
+    dimensions: {
+        length: {
+            type: Number
+        },
+        breadth: {
+            type: Number
+        },
+        height: {
+            type: Number
+        }
+    },
+    visibilityStatus: {
+        type : String
+    },
+    metaTitle: {
+        type : String
+    },
+    metaDescription: {
+        type : String
+    },
+    metaKeywords: [
+        {
+            type : String
+        }
+    ]
+}, { timestamps: true})
 
 export const Product = mongoose.model('Product', productSchema)

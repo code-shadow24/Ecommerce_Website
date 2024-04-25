@@ -3,6 +3,8 @@ import { ApiError } from "../utils/apiError.js";
 import { Seller } from "../models/seller.model.js";
 import { fileDelete, fileUpload } from "../utils/fileUpload.js";
 import { ApiResponse } from "../utils/apiResponse.js";
+import { Product } from "../models/product.model.js";
+import { Order } from "../models/order.model.js";
 
 const accessAndRefreshTokenGenerator = async(sellerId)=>{
   try {
@@ -572,6 +574,147 @@ const updateAvatar = asyncHandler( async (req, res) => {
 
 })
 
+const getSellerDetail = asyncHandler( async (req, res) => {
+  const userId = req.user?._id
+
+  //Get seller document form the database
+  const seller = await Seller.findById(userId).select("-password -refreshToken")
+
+  //If no seller is found
+  if(!seller){
+    throw new ApiError(404, "Seller not found", error)
+  }
+
+  //Count the number of products uploaded by the seller
+  const productCount = await Product.countDocuments({brandName: userId})
+  const productDetails = await Product.find({brandName: userId})
+
+  //Count the number of orders received by the seller
+  const orderCount = await Order.countDocuments({brandName: userId})
+  const orderDetails = await Order.find({brandName: userId})
+
+  const sellerDetails = {
+    seller: seller,
+    product: {
+      count: productCount,
+      data: productDetails
+    },
+    order: {
+      count: orderCount,
+      data: orderDetails
+    }
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "Seller Information Fetched Successfully", sellerDetails)
+  )
+
+})
+
+const refreshSellerAccessToken = asyncHandler( async (req, res) => {
+  const incomingRefreshToken = req.cookies?.refreshToken || req.body.refreshToken
+
+  if(!incomingRefreshToken) {
+    throw new ApiError(404, "Refresh token is required")
+  }
+
+  try {
+    const tokenVerification = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_SECRET_TOKEN_KEY
+    )
+
+    const seller = await Seller.findById(tokenVerification._id)
+
+    if(!seller){
+      throw new ApiError(404, "Seller not found", error)
+    }
+
+    if(incomingRefreshToken !== seller?.refreshToken){
+      throw new ApiError(404, "Refresh token mismatch", error)
+    }
+
+    const {accessToken, refreshToken} = await accessAndRefreshTokenGenerator(seller._id)
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+    }
+
+    return res
+    .status(200)
+    .cookie("accessToken", accessToken)
+    .cookie("refreshToken", refreshToken)
+    .json(
+      new ApiResponse(200, "Access Token refreshed successfully",{
+        accessToken,
+        refreshToken
+      } )
+    )
+  } catch (error) {
+    
+  }
+})
+
+const deleteSellerAccount = asyncHandler( async (req, res) => {
+  try {
+    const sellerId = req.user?._id
+
+    const existingSeller = await Seller.findById(sellerId)
+
+    if(!existingSeller) {
+      return res.status(404).json(new ApiResponse(404, "Seller not found", null))
+    }
+
+    //Delete seller avatar
+    try {
+      await fileDelete(existingSeller.avatar, false)
+    } catch (error) {
+      throw new ApiError(501, "Error deleting the seller avatar", error)
+    }
+
+    //Delete seller's products
+    try {
+      const products = await Product.find({brandName: sellerId})
+
+      await Product.deleteMany({brandName: sellerId})
+    } catch (error) {
+      throw new ApiError(501, "Error deleting the seller's products", error)
+    }
+
+    //Delete order details
+    try {
+      const orders = await Order.find({brandName: sellerId})
+
+      await Order.deleteMany({brandName: sellerId})
+    } catch (error) {
+      throw new ApiError(501, "Error deleting the order details", error)
+    }
+
+    //Delete seller Id
+    try {
+      await Seller.findByIdAndDelete(sellerId)
+    } catch (error) {
+      return res
+      .status(500)
+      .json(
+        new ApiResponse(500, "Error deleting seller id", error)
+      )
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, "Successfully deleted seller id", null))
+
+  } catch (error) {
+    return res
+      .status(500)
+      .json(new ApiResponse(500, "Error deleting seller Id", error));
+  }
+})
+
 export {
    registerSeller, 
    loginSeller, 
@@ -579,5 +722,8 @@ export {
    logOut, 
    getCurrentSeller,
    updateDetails,
-   updateAvatar
+   updateAvatar,
+   getSellerDetail,
+   refreshSellerAccessToken,
+   deleteSellerAccount
 };

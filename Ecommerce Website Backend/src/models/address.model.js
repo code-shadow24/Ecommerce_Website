@@ -6,8 +6,8 @@ const addressSchema = new mongoose.Schema({
         ref: "User"
     },
     mobileNo :{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
+        type: Number,
+        required: true
     },
     AddressLine1 : {
         type: String,
