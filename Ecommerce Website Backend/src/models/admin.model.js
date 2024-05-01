@@ -1,4 +1,6 @@
 import mongoose from 'mongoose';
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
 const adminSchema = new mongoose.Schema({
     adminId : {
@@ -17,7 +19,7 @@ const adminSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    roleId: {
+    role: {
         type: String,
         required: true
     },
@@ -37,15 +39,12 @@ const adminSchema = new mongoose.Schema({
     },
     lastLogin: {
         type: Date,
-        required: true
     },
     isActive: {
         type: Boolean,
-        required: true
     },
     isLocked: {
         type: Boolean,
-        required: true
     },
     lockOutTimeStamp: {
         type: Date,
@@ -53,11 +52,9 @@ const adminSchema = new mongoose.Schema({
     failedLoginAttempt:{
         type: Number,
         defaultValue: 0,
-        required: true
     },
     refreshToken: {
         type: String,
-        required: true
     },
     permissions: [
         {
@@ -69,27 +66,22 @@ const adminSchema = new mongoose.Schema({
     userManagement: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "UserManagement",
-        required: true
     },
     sellerManagement: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "SellerManagement",
-        required: true
     },
     productManagement: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Product",
-        required: true
     },
     orderManagement: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Order",
-        required: true
     },
     analyticsReport: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "AnalyticsReport",
-        required: true
     },
     promotionCampaigns: {
         type: mongoose.Schema.Types.ObjectId,
@@ -98,8 +90,46 @@ const adminSchema = new mongoose.Schema({
     activityLog: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "ActivityLog",
-        required: true
     }
 },{timestamps: true})
+
+
+adminSchema.pre('save', async function(next){
+    if(!this.isModified("password")) return next()
+
+    this.password = await bcrypt.hash(this.password, 14)
+    next()
+})
+
+adminSchema.methods.passwordCheck = async function(password){
+    return await bcrypt.compare(password, this.password)
+}
+
+adminSchema.methods.accessTokenGenerator = function(){
+    return jwt.sign(
+        {
+            _id: this._id,
+            email: this.email,
+            fullname: this.fullname
+        },
+        process.env.ACCESS_TOKEN_SECRET_KEY,
+        {
+            expiresIn: process.env.ACCESS_SECRET_TOKEN_EPIRY
+        }
+    )
+}
+
+adminSchema.methods.refreshTokenGenerator = function(){
+    return jwt.sign(
+        {
+            _id: this._id
+        },
+        process.env.REFRESH_SECRET_TOKEN_KEY,
+        {
+            expiresIn: process.env.REFRESH_SECRET_TOKEN_EPIRY
+        }
+    )
+}
+
 
 export const Admin = mongoose.model("Admin", adminSchema)
