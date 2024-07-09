@@ -8,7 +8,7 @@ const wishlistSchema = new mongoose.Schema({
     },
     productImage:{
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
+        ref: "Product", 
         required: true
     },
     productTitle:{

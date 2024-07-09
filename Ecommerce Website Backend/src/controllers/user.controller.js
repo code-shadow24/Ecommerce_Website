@@ -9,6 +9,7 @@ import { Order } from "../models/order.model.js";
 import { Rating } from "../models/ratings.model.js";
 import { Wishlist } from "../models/wishlist.model.js";
 import { Cart } from "../models/cart.model.js";
+import { sendUserPasswordResetEmail } from "../utils/emails/passwordResetVerificationCodeemail.js";
 
 //Generates access token and refresh token
 const generateAccessandRefreshToken = async (userId) => {
@@ -290,7 +291,7 @@ const updateDetails = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, "Profile updated successfully", user));
 });
-
+ 
 const changeAvatar = asyncHandler(async (req, res) => {
   const userId = req.user?._id;
   const avatarPath = req.file?.path;
@@ -545,6 +546,163 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
+const getUserById = asyncHandler(async(req, res)=>{
+  const userId = req.body || req.query
+
+  if(!userId){
+    throw new ApiError(400, "User Id is required")
+  }
+
+  const user = await User.findById(userId)
+
+  if(!user){
+    throw new ApiError(500, "Error occured while fetching the error")
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "User fetched successfully", user)
+  )
+})
+
+const getAllUsers = asyncHandler(async(req, res)=>{
+  const users = await User.find()
+
+  if(users.length==0){
+    return res
+    .status(404)
+    .json(
+      new ApiResponse(404, "No user found")
+    )
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "Users fetched successfully", users)
+  )
+})
+
+const resetUserPassword = asyncHandler(async(req, res)=>{
+  const userId = req.user?._id
+
+  const user = await User.findById(userId)
+
+  const {password} = req.body
+
+  const passRegex =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,10}$/;
+  if (!password.match(passRegex)) {
+    throw new ApiError(
+      402,
+      "Password must be 8 characters long. Atleast one lowercase letter, one uppercase letter, one number, and one special character is required(@, $, !, %, *, ?, &)"
+    );
+  } 
+
+  await sendUserPasswordResetEmail(userId)
+
+  const hashedPassword = bcrypt.hash(password, 14)
+
+  if(!hashedPassword){
+    throw new ApiError(404, "Error Saving new password", error)
+  }
+
+  try {
+    await User.findByIdAndUpdate(userId, {password: hashedPassword})
+    return res
+    .status(200)
+    .json(
+      new ApiResponse(200, "Password changed successfully", null)
+    )
+  } catch (error) {
+    throw new ApiError(500, "Error occured while changing the password", error)
+  }
+})
+
+const getUserOrders = asyncHandler(async(req, res)=>{
+  const userId = req.user?._id
+
+  const userOrders = await User.find({name: userId})
+
+  if(userOrders.length==0){
+    return res
+    .status(404)
+    .json(
+      new ApiResponse(404, "No Orders for the user found", null)
+    )
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "All User Orders Fetched Successfully", userOrders)
+  )
+})
+
+const getUserAddress = asyncHandler(async(req, res)=>{
+  const userId = req.user?._id
+
+  const userAddress = await User.find({name:userId})
+
+  if(userAddress.length==0){
+    return res
+    .status(404)
+    .json(
+      new ApiResponse(
+        404, "No Address found"
+      )
+    )
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "Address for the user fetched successfully", userAddress)
+  )
+
+})
+
+const getUserWishlist = asyncHandler(async(req, res)=>{
+  const userId = req.user?._id
+
+  const userWishlist = await Wishlist.find({name: userId})
+
+  if(userWishlist.length==0){
+    return res
+    .status(404)
+    .json(
+      new ApiResponse(404, "No Wishlist found", null)
+    )
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "User Wishlist Fetched Successfully", userWishlist)
+  )
+})
+
+const getUserReviews = asyncHandler(async(req, res)=>{
+  const userId = req.user?._id
+
+  const userReviews = await Rating.find({user: userId})
+
+  if(userReviews.length==0){
+    return res
+    .status(404)
+    .json(
+      new ApiResponse(404, "No User Reviews Found")
+    )
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "User Reviews Fetched Successfully", userReviews)
+  )
+})
+
 export {
   registerUser,
   loginUser,
@@ -554,5 +712,12 @@ export {
   changeAvatar,
   getUserDetails,
   refreshAccessToken,
-  deleteUser
+  deleteUser,
+  getUserById,
+  getAllUsers,
+  resetUserPassword,
+  getUserOrders,
+  getUserAddress,
+  getUserWishlist,
+  getUserReviews
 };

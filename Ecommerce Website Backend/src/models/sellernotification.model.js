@@ -6,6 +6,9 @@ const sellernotificationSchema = new mongoose.Schema({
         ref: "Seller",
         required: true
     },
+    subject: {
+        type: String,
+    },
     message: {
         type: String,
         required: true
@@ -14,21 +17,11 @@ const sellernotificationSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    status: {
-        type: String,
-        required: true
-    },
     timeStamp: {
         type: Date,
         required: true
     },
-    link: {
-        type: String,
-    },
-    metaData: {
-        type: String,
-    },
-    isActive: {
+    isRead: {
         type: Boolean,
         required: true
     }

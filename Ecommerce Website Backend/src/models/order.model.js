@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { OrderID } from "./orderId.model.js";
 
 const quantitySchema = new mongoose.Schema({
     productId: {
@@ -8,6 +9,15 @@ const quantitySchema = new mongoose.Schema({
     quantity: {
         type: Number,
         required: true
+    },
+    color: {
+        type: String,
+    },
+    size: {
+        type: String
+    },
+    returnQuantity: {
+        type: Number
     }
 })
 
@@ -25,40 +35,12 @@ const orderSchema = new mongoose.Schema({
         ref: "User",
         required: true
     },
-    productTitle: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product"
-    },
     address: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Address",
         required: true
     },
     orderItem: [quantitySchema],
-    size: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product"
-    },
-    color: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product"
-    },
-    category: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product"
-    },
-    productPrice: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product"
-    },
-    productImage: {
-        type: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "Product"
-            }
-        ] 
-    },
     discount: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Coupon"
@@ -67,15 +49,31 @@ const orderSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Tax"
     },
-    seller: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Seller"
-    },
     status: {
         type: String,
-        enum: ["Pending", "Cancelled", "Refunded", "Ready To Ship", "In-Transit", "Delivered", "RTO"],
+        enum: ["Pending", "Cancelled", "Refunded", "Ready To Ship", "In-Transit", "Delivered", "RTO", "Return Created", "Return PickedUp", "Return In-Transit", "Return Cancelled" ,"Returned"],
         required: true
-    }
+    },
+    returnReason: {
+        type: String,
+    },
 }, {timestamps: true})
+
+orderSchema.pre('save', async function(next){
+    if(!this.orderId){
+        let orderIdRecord = await OrderID.findOne();
+        if (!orderIdRecord) {
+            orderIdRecord = new OrderID();
+        }
+
+        const orderId = `${orderIdRecord.prefix}${orderIdRecord.current}`;
+        orderIdRecord.current += 1;
+        await orderIdRecord.save();
+
+        this.orderId = orderId;
+    }
+
+    next();
+})
 
 export const Order = mongoose.model("Order", orderSchema)

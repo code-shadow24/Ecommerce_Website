@@ -662,6 +662,8 @@ const deleteSellerAccount = asyncHandler( async (req, res) => {
   try {
     const sellerId = req.user?._id
 
+    const adminId = req.params.adminId && req.user?.role.admin
+
     const existingSeller = await Seller.findById(sellerId)
 
     if(!existingSeller) {
@@ -715,6 +717,95 @@ const deleteSellerAccount = asyncHandler( async (req, res) => {
   }
 })
 
+const getAllSellers = asyncHandler(async(req, res)=>{
+  const sellers = await Seller.find()
+
+  if(sellers.length==0){
+    return res
+    .status(404)
+    .json(
+      new ApiResponse(404, "No Seller found")
+    )
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "All Sellers Fetched Successfully", sellers)
+  )
+})
+
+const getSellerById = asyncHandler(async(req, res)=>{
+  const sellerId = req.params.sellerId || req.query.sellerId || req.body.sellerId
+
+  if(!sellerId){
+    throw new ApiError(400, "Selller Id is required")
+  }
+
+  const seller = await Seller.findById(sellerId)
+
+  if(!seller){
+    throw new ApiError(500, "Error occured while trying to fetch the seller")
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "Seller By Id Fetched Successfully", seller)
+  )
+
+})
+
+const getSellerProducts = asyncHandler(async(req, res)=>{
+  const sellerId = req.params.sellerId || req.body.sellerId || req.user?._id
+  const sellerProducts = await Product.find({seller: sellerId})
+
+  if(sellerProducts.length==0){
+    return res
+    .status(404)
+    .json(
+      new ApiResponse(404, "No Product found for this Seller")
+    )
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "All Products For The Seller Retrieved Successfully", sellerProducts) 
+  )
+})
+
+const getSellerOrders = asyncHandler(async(req, res)=>{
+  const sellerId = req.params.sellerId || req.body.sellerId || req.user?._id
+  
+  if(!sellerId){
+    throw new ApiError(400, "Seller Id is required")
+  }
+
+  const sellerOrders = await Order.find().populate({
+    path: 'orderItem.productId',
+    match: { seller: mongoose.Types.ObjectId(sellerId) },
+    populate: {
+      path: 'seller',
+      model: 'Seller'
+    }
+  })
+
+  const filteredOrders = sellerOrders.filter(order => 
+    order.orderItem.some(item => item.productId && item.productId.seller.equals(sellerId))
+  );
+
+  if(!filteredOrders){
+    throw new ApiError(404, "No order found")
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, "Order for the seller fetched successfully", filteredOrders)
+  )
+})
+
 export {
    registerSeller, 
    loginSeller, 
@@ -725,5 +816,9 @@ export {
    updateAvatar,
    getSellerDetail,
    refreshSellerAccessToken,
-   deleteSellerAccount
+   deleteSellerAccount,
+   getAllSellers,
+   getSellerById,
+   getSellerProducts,
+   getSellerOrders
 };

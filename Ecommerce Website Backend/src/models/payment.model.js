@@ -1,57 +1,42 @@
 import mongoose from "mongoose";
 
 const payementSchema = new mongoose.Schema({
-    user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true
-    },
-    order : {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Order",
-        required: true
-    },
-    paymentMethod: {
+    paymentId:{
         type: String,
-        enum: ["Credit card", "Debit card", "Razorpay", "NetBanking", "Cash on Delivery"],
         required: true
     },
-    paymentStatus: {
+    payerId: {
         type: String,
-        enum: ["Pending", "Succeeded", "Cancelled", "Failed"],
+        required: true
     },
     amount: {
-        type: Number,
+        type: String,
         required: true
     },
     currency: {
         type: String,
         required: true
     },
-    transactionId : {
+    paymentMethod: {
         type: String,
         required: true
     },
-    paymentDate: {
+    state: {
+        type: String,
+        required: true
+    },
+    createTime: {
         type: Date,
         required: true
     },
-    paymentGateway: {
-        type: String,
+    updateTime: {
+        type: Date,
         required: true
     },
-    paymentDetails: {
-        type: String
-    },
-    authorizationCode: {
+    salesId: {
         type: String,
         required: true
-    },
-    paymentInvoice: {
-        type: String,
-        required: true
-    },
-
+    }
 }, {timestamps: true})
 
 export const Payment = mongoose.model("Payment", payementSchema);

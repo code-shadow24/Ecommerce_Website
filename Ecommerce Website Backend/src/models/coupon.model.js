@@ -1,6 +1,14 @@
 import mongoose from "mongoose";
 
 const couponSchema = new mongoose.Schema({
+    userId : {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    productId : {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product'
+    },
     couponId: {
         type: String,
         required: true
@@ -31,25 +39,15 @@ const couponSchema = new mongoose.Schema({
     },
     usageCount: {
         type: Number,
-        required: true
+        defaultValue: 0
     },
     status: {
         type: String,
-        required: true
+        enum: ['active', 'processing', 'applied', 'expired'],
+        defaultValue: 'active'
     },
-    redemptionTracking: [
-        {
-            type: String,
-        }
-    ],
-    userRestrictions: [
-        {
-            type: String,
-        }
-    ],
     redemptionStatus: {
         type: String,
-        required: true
     }
 },{timestamps: true})
 

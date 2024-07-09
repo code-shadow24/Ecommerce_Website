@@ -33,11 +33,13 @@ const inventorySchema = new mongoose.Schema({
         type: Number,
     },
     price: {
-        type: Number,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
         required: true
     },
     costPrice: {
-        type: Number,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
         required: true
     },
     supplierId:{
@@ -65,7 +67,6 @@ const inventorySchema = new mongoose.Schema({
     },
     expiryDate: {
         type: Date,
-        required: true
     },
     lastRestockDate: {
         type: Date,

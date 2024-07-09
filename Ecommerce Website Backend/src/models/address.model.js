@@ -12,7 +12,7 @@ const addressSchema = new mongoose.Schema({
     AddressLine1 : {
         type: String,
         required: true,
-    },
+    }, 
     AddressLine2 : {
         type: String,
     },

@@ -37,9 +37,6 @@ const ratingSchema = new mongoose.Schema({
     reviewImages: {
         type: String
     },
-    reviewVideos: {
-        type: String
-    }
 }, {timestamps: true})
 
 export const Rating = mongoose.model("Rating", ratingSchema)

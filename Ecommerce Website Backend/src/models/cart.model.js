@@ -17,16 +17,6 @@ const cartSchema = new mongoose.Schema({
         ref: "Product",
         required: true
     },
-    productName: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-        required: true
-    },
-    productImage: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-        required: true
-    },
     color: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Product"
@@ -36,15 +26,6 @@ const cartSchema = new mongoose.Schema({
         ref: "Product"
     },
     addedQuantity: [quantitySchema],
-    price: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-        required: true
-    },
-    subTotal: {
-        type: Number,
-        required: true
-    },
     deliveryCharge: {
         type: Number,
         required: true
@@ -55,10 +36,6 @@ const cartSchema = new mongoose.Schema({
             ref: "Coupon"
         }
     ],
-    grandTotal: {
-        type: Number,
-        required: true
-    },
     name: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
@@ -71,14 +48,6 @@ const cartSchema = new mongoose.Schema({
     productAvailability: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Inventory",
-        required: true
-    },
-    totalQuantity: {
-        type: Number,
-        required: true
-    },
-    totalPrice: {
-        type: Number,
         required: true
     },
     discountAmount: {

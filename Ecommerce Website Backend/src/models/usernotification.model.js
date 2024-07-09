@@ -6,6 +6,9 @@ const usernotificationSchema = new mongoose.Schema({
         ref: "User",
         required: true
     },
+    subject: {
+        type: String
+    },
     message: {
         type: String,
         required: true
@@ -16,17 +19,12 @@ const usernotificationSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        required: true
+        required: true,
+        enum: ["Read", "Unread"]
     },
     timeStamp: {
         type: Date,
         required: true
-    },
-    link: {
-        type: String,
-    },
-    metaData: {
-        type: String,
     },
     isActive: {
         type: Boolean,

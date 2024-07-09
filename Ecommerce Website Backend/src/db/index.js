@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { DB_NAME } from "../constants.js";
+import { Counter } from "../models/counterCollection.model.js";
 
 const connectDB = async ()=>{
     try {
@@ -10,6 +11,23 @@ const connectDB = async ()=>{
         process.exit(1);
     }
 }
+
+const initializeCounter = async () => {
+    await mongoose.connect(`${process.env.MONGODB_URL}/${DB_NAME}`)
+
+
+    const counter = new Counter({
+        id: 'ticketId',
+        seq: 0
+    })
+
+    await counter.save();
+    console.log("Counter Initialised")
+
+    mongoose.disconnect();
+}
+
+initializeCounter();
 
 export default connectDB
 

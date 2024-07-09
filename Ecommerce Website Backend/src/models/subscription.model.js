@@ -12,12 +12,9 @@ const subscriptionSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        required: true
+        required: true,
+        enum: ["Subscribed", "Unsubscribed"]
     },
-    isActive: {
-        type: Boolean,
-        required: true
-    }
 },{timestamps: true})
 
 export const Subscription = mongoose.model("Subscription", subscriptionSchema)
