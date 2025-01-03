@@ -1,0 +1,42 @@
+{
+  "name": "ecommerce-website-backend",
+  "version": "1.0.0",
+  "description": "Ecommerce Website backend",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js"
+  },
+  "keywords": [
+    "backend",
+    "ecommerce",
+    "website"
+  ],
+  "author": "Aastha Mishra (shadow)",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.0",
+    "prettier": "^3.2.5"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1632.0",
+    "bcrypt": "^5.1.1",
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.0.3",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "csv-parser": "^3.0.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "express-session": "^1.18.0",
+    "json2csv": "^6.0.0-alpha.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.2.1",
+    "mongoose-aggregate-paginate": "^2.0.2",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.14",
+    "paypal-rest-sdk": "^1.8.1",
+    "pdfkit": "^0.15.0",
+    "shippo": "^2.6.1"
+  }
+}
